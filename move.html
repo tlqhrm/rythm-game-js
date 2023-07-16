@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rhythm Game</title>
+    <style>
+        canvas {
+            background-color: black;
+            margin: 20px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<canvas id="game" width="800" height="400"></canvas>
+
+<script>
+    // Define the game variables
+    const gameCanvas = document.getElementById('game');
+    const ctx = gameCanvas.getContext('2d');
+    const gameWidth = gameCanvas.width;
+    const gameHeight = gameCanvas.height;
+    const laneHeight = gameHeight / 4;
+    const notes = [];
+
+    // Define the note class
+    class Note {
+        constructor(lane) {
+            this.lane = lane;
+            this.x = gameWidth;
+            this.y = lane * laneHeight;
+            this.width = 50;
+            this.height = 50;
+            this.speed = 5;
+            this.hit = false;
+        }
+
+        update() {
+            this.x -= this.speed;
+
+            // Check for collision with the hit area
+            if (this.x + this.width > 0 && this.x < gameWidth && !this.hit) {
+                if (Math.abs(this.y + this.height / 2 - gameHeight / 2) < laneHeight / 2) {
+                    this.hit = true;
+                    // Perform an action when the note is hit
+                    // For example, increase the score
+                }
+            }
+
+            // Remove the note when it goes off-screen
+            if (this.x + this.width < 0) {
+                notes.splice(notes.indexOf(this), 1);
+            }
+        }
+
+        draw() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }
+    }
+
+    // Function to create a new note
+    function createNote() {
+        const lane = Math.floor(Math.random() * 4); // Randomly select a lane
+        const note = new Note(lane);
+        notes.push(note);
+        console.log(notes)
+    }
+
+    // Handle keydown events
+    function handleKeyDown(event) {
+        const lane = event.keyCode - 49; // Map keys 1-4 to lanes 0-3
+        const note = notes.find(note => !note.hit && note.lane === lane);
+        console.log(lane)
+        if (note) {
+            note.hit = true;
+            // Perform an action when the note is hit
+            // For example, increase the score
+        }
+    }
+
+    // Start the game
+    function startGame() {
+        document.addEventListener('keydown', handleKeyDown);
+        setInterval(createNote, 1000); // Create a new note every second
+
+        // Game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, gameWidth, gameHeight);
+
+            // Draw the lanes
+            for (let i = 1; i < 4; i++) {
+                ctx.strokeStyle = 'gray';
+                ctx.beginPath();
+                ctx.moveTo(0, i * laneHeight);
+                ctx.lineTo(gameWidth, i * laneHeight);
+                ctx.stroke();
+            }
+
+            // Update and draw the notes
+            notes.forEach(note => {
+                note.update();
+                note.draw();
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    }
+
+    // Start the game when the page is loaded
+    window.addEventListener('load', startGame);
+</script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Rhythm Game</title>
+    <style>
+        canvas {
+            background-color: black;
+            margin: 20px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<input type="file" id="audioFileInput">
+<audio id="audioPlayer" controls></audio>
+<canvas id="game" width="800" height="400"></canvas>
+
+<script>
+    // Define the game variables
+    const gameCanvas = document.getElementById('game');
+    const ctx = gameCanvas.getContext('2d');
+    const gameWidth = gameCanvas.width;
+    const gameHeight = gameCanvas.height;
+    const laneHeight = gameHeight / 4;
+    const notes = [];
+
+    let audioElement;
+    let audioContext;
+    let sourceNode;
+    let audioFileInput = document.getElementById('audioFileInput');
+    let audioBuffer;
+    // Handle the audio file selection
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            loadAudioFile(file);
+        }
+    }
+
+    // Load the audio file
+    function loadAudioFile(file) {
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+            const data = event.target.result;
+            audioElement.src = data;
+            audioElement.load();
+            createSourceNode(file);
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    // Create a source node from the audio element
+    function createSourceNode(file) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        sourceNode = audioContext.createMediaElementSource(audioElement);
+        sourceNode.connect(audioContext.destination);
+
+        const fileReader = new FileReader();
+        fileReader.onload = function (event) {
+            audioContext.decodeAudioData(event.target.result, function (buffer) {
+                audioBuffer = buffer;
+                const duration = buffer.duration;
+                const audioDuration = audioElement.duration;
+                console.log(duration, audioDuration)
+                audioElement.play();
+                // if (Math.abs(duration - audioDuration) <= 0.001) {
+                //     audioElement.play();
+                // } else {
+                //     alert('The selected audio file does not match the input file.');
+                // }
+            });
+        };
+        fileReader.readAsArrayBuffer(file);
+    }
+
+    // Define the note class
+    class Note {
+        constructor(lane, startTime) {
+            this.lane = lane;
+            this.startTime = startTime;
+            this.endTime = startTime + 0.5; // Adjust the duration as needed
+            this.hit = false;
+        }
+
+        update(currentTime) {
+            // Check if the note should be active
+            if (currentTime >= this.startTime && currentTime <= this.endTime && !this.hit) {
+                const laneY = (this.lane + 0.5) * laneHeight;
+                const hitAreaY = gameHeight / 2;
+
+                // Check for collision with the hit area
+                if (Math.abs(laneY - hitAreaY) < laneHeight / 2) {
+                    this.hit = true;
+                    // Perform an action when the note is hit
+                    // For example, increase the score
+                }
+            }
+        }
+
+        draw() {
+            const laneX = this.lane * gameWidth / 4;
+            const laneY = (this.lane + 0.5) * laneHeight;
+
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(laneX, laneY, laneHeight / 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // Function to create a new note
+    function createNote() {
+        const lane = Math.floor(Math.random() * 4); // Randomly select a lane
+        const currentTime = audioContext.currentTime;
+        const note = new Note(lane, currentTime);
+        notes.push(note);
+    }
+
+    // Start the game
+    function startGame() {
+        audioElement = document.getElementById('audioPlayer');
+        // audioElement.addEventListener('change', handleFileSelect);
+        audioElement.volume = 0.1;
+        audioElement.src = URL.createObjectURL(this.files[0]);
+        audioElement.load();
+
+
+
+        createSourceNode(audioFileInput.files[0]);
+
+        console.log(audioElement)
+        console.log(audioContext)
+
+        setInterval(createNote, 1000); // Create a new note every second
+
+        // Game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, gameWidth, gameHeight);
+
+            // Draw the lanes
+            for (let i = 1; i < 4; i++) {
+                ctx.strokeStyle = 'gray';
+                ctx.beginPath();
+                ctx.moveTo(0, i * laneHeight);
+                ctx.lineTo(gameWidth, i * laneHeight);
+                ctx.stroke();
+            }
+
+            const currentTime = audioContext.currentTime;
+
+            // Update and draw the notes
+            notes.forEach(note => {
+                note.update(currentTime);
+                note.draw();
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    }
+
+    // Start the game when the page is loaded
+    audioFileInput.addEventListener('change', startGame);
+</script>
+</body>
+</html>
